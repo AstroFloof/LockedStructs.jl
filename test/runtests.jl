@@ -1,8 +1,8 @@
 @show @elapsed using LockedStructs
 @show @elapsed using Test
+@show @elapsed using BenchmarkTools
 
 @testset "Getters" begin 
-    ncalls = 0
     struct Singleton <: LockedStruct # example
         # what's in here doesn't matter
         number::Int
@@ -35,6 +35,16 @@
     @test sy === :hi
     @info locket sg
     @info '\n' n b sy
+
+
+    display(@benchmark n, b, sy = @LMFAO $locket $sg :number :bool :symbol)
+    println()
+    display(@benchmark n, b, sy = @LMFAO $locket $sg number bool symbol)
+    println()
+    display(@benchmark n, b, sy = @LMFAO Singleton() :number :bool :symbol)
+    println()
+    display(@benchmark n, b, sy = @LMFAO Singleton() number bool symbol)
+    println()
 end
 
 @testset "Setters" begin
@@ -58,13 +68,13 @@ end
     @test_throws ArgumentError LockedStructs.LMFAO!(MSingleton()..., :(1 + 1))
 
     @test begin
-        @LMFAO! MSingleton() number = 1 bool = true symbol = :hello
+        @LMFAO! MSingleton() number = 1  bool = true  symbol = :hello
         n, b, sy = @LMFAO MSingleton() number bool symbol
         n == 1 && b && sy === :hello
     end
 
     @test begin
-        @LMFAO! MSingleton() :number = 1 :bool = true :symbol = :hello
+        @LMFAO! MSingleton() :number = 1  :bool = true  :symbol = :hello
         n, b, sy = @LMFAO MSingleton() number bool symbol
         n == 1 && b && sy === :hello
     end

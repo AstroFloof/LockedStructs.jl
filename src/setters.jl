@@ -45,12 +45,12 @@ end
 
 macro LMFAO!(lk::Symbol, objref::Symbol, fields::Expr...) quote 
 
-    LockedStructs.LMFAO!($lk, $objref, $fields...) 
+    $LMFAO!($lk, $objref, $fields...) 
 
 end |> esc end
 
 macro LMFAO!(call::Expr, fields::Expr...) quote 
 
-    LockedStructs.LMFAO!(eval($call)..., $fields...) 
+    $LMFAO!(eval($call)..., $fields...) 
 
 end |> esc end
