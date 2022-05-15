@@ -8,7 +8,7 @@
         number::Int
         bool::Bool
         symbol::Symbol
-        Singleton(; number::Int=0, bool::Bool=false, symbol::Symbol=:hi) = begin
+        @inline Singleton(; number::Int=0, bool::Bool=false, symbol::Symbol=:hi) = begin
             if !isassigned(singleton)
                 @lock sng_lock singleton[] = new(number, bool, symbol)
             end
@@ -20,7 +20,7 @@
     sng_lock = ReentrantLock()
 
     # Use of call to pass lock and singleton
-    n, b, sy = @LMFAO Singleton() number bool symbol
+    @time n, b, sy = @LMFAO Singleton() number bool symbol
 
     @test n == 0
     @test !b
@@ -28,8 +28,7 @@
     @info '\n' n b sy
 
     # Use of bare values to pass lock and singleton
-    locket, sg = Singleton()
-    n, b, sy = @LMFAO locket sg :number :bool :symbol
+    @time locket, sg = Singleton(); n, b, sy = @LMFAO locket sg :number :bool :symbol
     @test n == 0
     @test !b
     @test sy === :hi
