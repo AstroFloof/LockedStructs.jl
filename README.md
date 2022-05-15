@@ -43,7 +43,7 @@ Use of `@LMFAO!` is still in progress but getting there. See `test/runtests.jl` 
 
 
 
-> Hold on, why not use `Base.Threads.Atomic`?
+### Hold on, why not use `Base.Threads.Atomic`?
 #### It's not as fast
 On the same machine, the struct found in `test/runtests.jl` takes about 100-110 nanoseconds to access three values, while the near-equivalent using `Atomic` values takes about 3x that. Don't believe me? Run the test suite and compare it to this:
 ```julia
@@ -74,4 +74,5 @@ It's a silly acronym, but it stands for Locking Multiple Field Access Operation 
 Other syntaxes could be possible, like these:
 - overloading `getindex` such that `MyStruct[:value1, :value2]` would work
 - functors?
-However Julia's macro system seems to work well enough, considering I managed to optimize access time down to one-tenth of a microsecond.
+
+However, Julia's macro system seems to work well enough, considering I managed to optimize access time down to one-tenth of a microsecond.
