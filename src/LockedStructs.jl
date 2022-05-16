@@ -5,6 +5,7 @@ module LockedStructs
 
     abstract type LockedStruct end
 
+    include("common.jl")
     include("getters.jl")
     include("setters.jl")
     

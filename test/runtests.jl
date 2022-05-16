@@ -1,8 +1,28 @@
 @show @elapsed using LockedStructs
 @show @elapsed using Test
-@show @elapsed using BenchmarkTools
+@show @elapsed using BenchmarkTools: @benchmark
+@show @elapsed using InteractiveUtils: @code_lowered
+
+
+macro LS_GET_TEST(expr::Expr) quote
+    
+    let (n::Int, b::Bool, sy::Symbol) = @time $expr
+        @test n == 0
+        @test !b
+        @test sy === :hi
+        @info '\n' n b sy
+        println()
+    end
+        
+    @info @code_lowered $expr
+    println()
+
+end |> esc end
 
 @testset "Getters" begin 
+
+    @info "Starting tests and benchmarks for get methods"
+
     struct Singleton <: LockedStruct # example
         # what's in here doesn't matter
         number::Int
@@ -19,32 +39,34 @@
     singleton = Ref{Singleton}()
     sng_lock = ReentrantLock()
 
-    # Use of call to pass lock and singleton
-    @time n, b, sy = @LMFAO Singleton() number bool symbol
-
-    @test n == 0
-    @test !b
-    @test sy === :hi
-    @info '\n' n b sy
 
     # Use of bare values to pass lock and singleton
-    @time locket, sg = Singleton(); n, b, sy = @LMFAO locket sg :number :bool :symbol
-    @test n == 0
-    @test !b
-    @test sy === :hi
+    locket, sg = Singleton()
     @info locket sg
-    @info '\n' n b sy
+    @LS_GET_TEST @LMFAO locket sg number bool symbol
+    @LS_GET_TEST @LMFAO locket sg :number :bool :symbol
+
+    # Use of call to pass lock and singleton
+    @LS_GET_TEST @LMFAO Singleton() number bool symbol
+    @LS_GET_TEST @LMFAO Singleton() :number :bool :symbol
 
 
-    display(@benchmark n, b, sy = @LMFAO $locket $sg :number :bool :symbol)
-    println()
-    display(@benchmark n, b, sy = @LMFAO $locket $sg number bool symbol)
-    println()
-    display(@benchmark n, b, sy = @LMFAO Singleton() :number :bool :symbol)
-    println()
-    display(@benchmark n, b, sy = @LMFAO Singleton() number bool symbol)
-    println()
+    @info "Running benchmarks"
+    display_bench(b) = begin display(b); println() end
+    display_bench.(
+        [
+            @benchmark @LMFAO $locket $sg number bool symbol
+            @benchmark @LMFAO $locket $sg :number :bool :symbol
+            @benchmark @LMFAO Singleton() number bool symbol
+            @benchmark @LMFAO Singleton() :number :bool :symbol
+
+        ]
+    )    
+
+    @info "Tests and benchmarks for getter methods are finished."
 end
+
+
 
 @testset "Setters" begin
 
