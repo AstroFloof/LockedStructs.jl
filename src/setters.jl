@@ -1,54 +1,74 @@
 using .Meta: isoperator
 
-function LMFAO!(lk::ReentrantLock, objref::Base.RefValue{T}, mut_ops::Expr...) where T <: LockedStruct
+function LMFAO!_gen(expr::Expr)::Expr
 
-    @assert typeof(lk) === ReentrantLock
+    let field::QuoteNode
 
-    @lock lk let obj::T = objref[]
+        if expr.head |> isoperator
 
-        for op in mut_ops
+            field = stoq(expr.args[1])
+            Expr(
+                expr.head,
+                Expr(
+                    :.,
+                    :obj,
+                    field
+                ),
+                stoq(eval(expr.args[2]))
+            )
 
-            var::Symbol = norm_quote_or_symbol(op.args[1])
-            expr = eval(op.args[2])
+        elseif expr.head === :call 
 
-            if op.head === :(=)
+            field = stoq(expr.args[2])
+            Expr(
+                :call,
+                expr.args[1],
+                Expr(
+                    :.,
+                    :obj,
+                    field
+                ),
+                expr.args[3]
+            )
 
-                setproperty!(obj, var, expr)
+        else
 
-            elseif op.head === :call 
+            ex = ArgumentError("If you got here, good job. Please open an issue at https://github.com/AstroFloof/LockedStructs.jl")
+            @error exception=ex
+            throw(ex)
 
-                ex = ArgumentError("Use of function calls like \"($op)\" without explicit assigment to a field is not supported yet.")
-                @error exception=ex
-                throw(ex)
-
-            elseif op.head |> isoperator
-
-                f::Function = get(OP_TABLE, op.head, missing)
-
-                if f |> ismissing
-                    ex = ArgumentError("Use of the operator \"($op.head)\" on a field is not supported.")
-                    @error exception=ex
-                    throw(ex)
-                end
-
-                modifyfield!(obj, var, f, expr)
-            
-            else
-                ex = ArgumentError("If you got here, good job. Please open an issue at https://github.com/AstroFloof/LockedStructs.jl")
-                @error exception=ex
-                throw(ex)
-    end end end
-    return nothing
+        end
+    end
 end
+    
 
-macro LMFAO!(lk::Symbol, objref::Symbol, fields::Expr...) quote 
+macro LMFAO!(lk::Symbol, objref::Symbol, fields::Expr...) 
+    generated_codes::NTuple{length(fields), Expr} = NTuple{length(fields), Expr}(
+        LMFAO!_gen(f) for f in fields
+    )
+    quote 
 
-    $LMFAO!($lk, $objref, $fields...) 
+        @lock $lk begin
+            obj = $objref[]
+            $(generated_codes...)
+        end
 
 end |> esc end
 
-macro LMFAO!(call::Expr, fields::Expr...) quote 
 
-    $LMFAO!(eval($call)..., $fields...) 
+macro LMFAO!(call::Expr, fields::Expr...) 
+    objtype::Symbol = call.args[1]
+    generated_codes::NTuple{length(fields), Expr} = NTuple{length(fields), Expr}(
+        LMFAO!_gen(f) for f in fields
+    )
+
+    quote 
+
+        let (lk::ReentrantLock, ref::$REFTYPE{$objtype}) = $call
+            @lock lk begin 
+                obj::$objtype = ref[]
+                $(generated_codes...)
+            end
+        end
 
 end |> esc end

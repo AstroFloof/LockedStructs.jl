@@ -1,57 +1,16 @@
-@inline function norm_quote_or_symbol(qt_or_sym::T)::Symbol where {T <: Union{QuoteNode, Symbol}}
-    T == QuoteNode ? qt_or_sym.value : qt_or_sym
+@inline qtos(qt::QuoteNode)::Symbol = qt.value
+@inline qtos(sym::Symbol)::Symbol = sym
+@inline function qtos(x::T)::T where T
+    x
 end
 
-const OP_TABLE = Dict{Symbol, Function}(
-    # addition
-    :+= => +,
-    :-= => -,
+@inline stoq(sym::Symbol)::QuoteNode = QuoteNode(sym)
+@inline stoq(qt::QuoteNode)::QuoteNode = qt
+@inline function stoq(x::T)::T where T 
+    x 
+end
 
-    # multiplicative
-    :*= => *,
-    :^= => ^,
-
-    # divisive
-    :/= => /,
-    ://= => //,
-    :\= => \,
-    :÷= => ÷,
-    :%= => %,
-
-    # bitwise
-    :&= => &,
-    :|= => |,
-    :⊻= => ⊻,
-    :<<= => <<,
-    :>>= => >>,
-    :>>>= => >>>,
-
-    # broadcasted addition
-    :.+= => .+,
-    :.-= => .-,
-
-    # broadcasted multiplicative
-    :.*= => .*,
-    :.^= => .^,
-
-    # broadcasted divisive
-    :./= => ./,
-    :.//= => .//,
-    :.\= => .\,
-    :.÷= => .÷,
-    :.%= => .%,
-
-    # broadcasted bitwise
-    :.&= => .&,
-    :.|= => .|,
-    :.⊻= => .⊻,
-    :.<<= => .<<,
-    :.>>= => .>>,
-    :.>>>= => .>>>,
-)
+import Base: convert
+@inline convert(t::Type{Symbol}, q::QuoteNode) = qtos(q)
 
 const REFTYPE{T} = Base.RefValue{T}
-
-import Base: |>
-@inline |>(x::Tuple{Vararg{Any}}, f::Function) = f(x...)
-@inline <|(f::Function, x::Tuple{Vararg{Any}}) = f(x...)

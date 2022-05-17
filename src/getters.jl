@@ -23,7 +23,7 @@ end |> esc end end
 
 macro LMFAO(lk::Symbol, objref::Symbol, fields::QuoteNode...) quote
 
-    $LMFAO($lk, $objref, $(fields .|> norm_quote_or_symbol)) 
+    $LMFAO($lk, $objref, $(fields .|> qtos)) 
 
 end |> esc end
 
@@ -31,7 +31,7 @@ end |> esc end
 macro LMFAO(call::Expr, fields::QuoteNode...) let type::Symbol = call.args[1]; quote 
     
     let (lk::ReentrantLock, objref::$REFTYPE{$type}) = $call
-        $LMFAO(lk, objref, $(fields .|> norm_quote_or_symbol)) 
+        $LMFAO(lk, objref, $(fields .|> qtos)) 
     end 
 
 end |> esc end end
