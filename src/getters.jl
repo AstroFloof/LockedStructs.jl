@@ -1,7 +1,7 @@
 
 # Locking Multiple Field Access Operation
 @inline function LMFAO(lk::ReentrantLock, objref::Base.RefValue{T}, fields::NTuple{N, Symbol})::NTuple{N, Any} where {T <: LockedStruct, N}
-    return @lock lk NTuple{N, Any}(fields .|> f -> getfield(objref[], f))
+    return @lock lk NTuple{N, Any}(getfield.(objref, fields))
 end
 
 
