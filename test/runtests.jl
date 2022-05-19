@@ -6,6 +6,9 @@
 
 macro LS_GET_TEST(expr::Expr) quote
     
+    @info @macroexpand $expr
+    println()
+    
     let (n::Int, b::Bool, sy::Symbol) = @time $expr
         @test n == 0
         @test !b
@@ -13,9 +16,6 @@ macro LS_GET_TEST(expr::Expr) quote
         @info '\n' n b sy
         println()
     end
-        
-    @info @macroexpand $expr
-    println()
 
 end |> esc end
 
@@ -65,7 +65,7 @@ end
 
 macro LS_SET_TEST(expr::Expr) quote
     
-    @info @macroexpand1 $expr
+    @info @macroexpand $expr
     $expr
     @LMFAO MSingleton() number bool symbol mut
 
@@ -139,6 +139,7 @@ end |> esc end
 
     @test_throws LoadError @eval $should_not_compile
 
+    
     @info "Running benchmarks"
     display_bench(b) = begin display(b); println() end
     display_bench.(
@@ -151,5 +152,5 @@ end |> esc end
             @benchmark @LMFAO! MSingleton()
         ]
     )
-
+    
 end

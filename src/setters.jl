@@ -48,27 +48,17 @@ macro LMFAO!(lk::Symbol, objref::Symbol, fields::Expr...)
     )
     quote 
 
-        @lock $lk begin
-            obj = $objref[]
+        @lock $lk let obj = $objref[]
             $(generated_codes...)
         end
 
 end |> esc end
 
 
-macro LMFAO!(call::Expr, fields::Expr...) 
-    objtype::Symbol = call.args[1]
-    generated_codes::NTuple{length(fields), Expr} = NTuple{length(fields), Expr}(
-        LMFAO!_gen(f) for f in fields
-    )
+macro LMFAO!(call::Expr, fields::Expr...) let objtype::Expr = RefTypeExpr(call.args[1]); quote 
 
-    quote 
+    let (lk::ReentrantLock, ref::$objtype) = $call
+        @LMFAO!(lk, ref, $(fields...))
+    end
 
-        let (lk::ReentrantLock, ref::$REFTYPE{$objtype}) = $call
-            @lock lk begin 
-                obj::$objtype = ref[]
-                $(generated_codes...)
-            end
-        end
-
-end |> esc end
+end |> esc end end

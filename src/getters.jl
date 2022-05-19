@@ -1,37 +1,48 @@
-
 # Locking Multiple Field Access Operation
-@inline function LMFAO(lk::ReentrantLock, objref::Base.RefValue{T}, fields::NTuple{N, Symbol})::NTuple{N, Any} where {T <: LockedStruct, N}
-    return @lock lk NTuple{N, Any}(getfield.(objref, fields))
-end
 
+macro LMFAO(lk::Symbol, objref::Symbol, fields::Symbol...) 
+   
+    return_syms::Expr = Expr(:tuple, fields...)
+    quote 
 
-macro LMFAO(lk::Symbol, objref::Symbol, fields::Symbol...) quote 
-
-    $LMFAO($lk, $objref, $fields) 
+        lock($lk)
+        try
+            (; $(fields...)) = $objref[]
+            $return_syms
+        finally
+            unlock($lk)
+        end
 
 end |> esc end
 
 
-macro LMFAO(call::Expr, fields::Symbol...) let type::Symbol = call.args[1]; quote 
-    
-    let (lk::ReentrantLock, ref::$REFTYPE{$type}) = $call
-        $LMFAO(lk, ref, $fields) 
+macro LMFAO(call::Expr, fields::Symbol...) let reftype::Expr = RefTypeExpr(call.args[1]); quote 
+   
+    #=
+        This `$reftype` thing is a weird way to type the ref but it works.
+        It seems to be quick enough of a runtime lookup to enable the type-based optimizations
+        that are crucial to performance here.
+        The tests give this result
+        Typed performance medians: 110-120 ns
+        Untyped performance medians: 420 ns (hehe)
+        `Base.RefValue` typing perf. medians: 500-505 ns (what even)
+    =#
+    let (lk::ReentrantLock, ref::$reftype) = $call
+        @LMFAO(lk, ref, $(fields...)) 
     end
 
 end |> esc end end
 
 
 macro LMFAO(lk::Symbol, objref::Symbol, fields::QuoteNode...) quote
-
-    $LMFAO($lk, $objref, $(fields .|> qtos)) 
+ 
+    @LMFAO($lk, $objref, $((fields .|> qtos)...)) 
 
 end |> esc end
 
 
-macro LMFAO(call::Expr, fields::QuoteNode...) let type::Symbol = call.args[1]; quote 
-    
-    let (lk::ReentrantLock, objref::$REFTYPE{$type}) = $call
-        $LMFAO(lk, objref, $(fields .|> qtos)) 
-    end 
+macro LMFAO(call::Expr, fields::QuoteNode...) quote 
 
-end |> esc end end
+    @LMFAO($call, $((fields .|> qtos)...))
+
+end |> esc end
